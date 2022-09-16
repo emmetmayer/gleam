@@ -80,14 +80,14 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 
 	if (address)
 	{
-		backtrace_t* backtrace = (backtrace_t*) ((int*) address + size/sizeof(int));
+		backtrace_t* backtrace = (backtrace_t*)((int*)address + size / sizeof(int));
 		backtrace->address = address;
-		backtrace->trace = (int**)((int*)backtrace + sizeof(int*)/sizeof(int));
+		backtrace->trace = (int**)((int*)backtrace + sizeof(int*) / sizeof(int));
 		debug_backtrace(backtrace->trace, 10);
 		backtrace->next = heap->backtrace;
 		heap->backtrace = backtrace;
 	}
-	
+
 
 	return address;
 }
@@ -108,8 +108,8 @@ void heap_free(heap_t* heap, void* address)
 		}
 		trace->next = trace->next->next;
 	}
-	
-	
+
+
 }
 
 void heap_destroy(heap_t* heap)
