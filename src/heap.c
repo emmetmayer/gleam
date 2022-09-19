@@ -8,6 +8,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <DbgHelp.h>
 
 typedef struct arena_t
 {
@@ -15,10 +16,12 @@ typedef struct arena_t
 	struct arena_t* next;
 } arena_t;
 
+//A struct to hold the backtrace information of each address of memory alloc'd using heap_alloc()
 typedef struct backtrace_t
 {
 	void* address;
-	void** trace;
+	void* trace[4];
+	unsigned short frames;
 	struct backtrace_t* next;
 	size_t size;
 } backtrace_t;
@@ -80,14 +83,13 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 
 	if (address)
 	{
-		backtrace_t* backtrace = (backtrace_t*)((int*)address + size / sizeof(int));
+		backtrace_t* backtrace = (backtrace_t*)((char*)address + size);
 		backtrace->address = address;
-		backtrace->trace = (int**)((int*)backtrace + sizeof(int*) / sizeof(int));
-		debug_backtrace(backtrace->trace, 10);
+		backtrace->frames = debug_backtrace(backtrace->trace, 4);
+		backtrace->size = size /* + sizeof(backtrace_t)*/;
 		backtrace->next = heap->backtrace;
 		heap->backtrace = backtrace;
 	}
-
 
 	return address;
 }
@@ -108,13 +110,36 @@ void heap_free(heap_t* heap, void* address)
 		}
 		trace->next = trace->next->next;
 	}
-
-
 }
 
 void heap_destroy(heap_t* heap)
 {
 	tlsf_destroy(heap->tlsf);
+
+	HANDLE process = GetCurrentProcess();
+	PIMAGEHLP_SYMBOL64 symbol;
+
+	SymInitialize(process, NULL, TRUE);
+
+	symbol = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
+	symbol->MaxNameLength = 255;
+	symbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL64);
+
+	backtrace_t* trace = heap->backtrace;
+	while (trace)
+	{
+		debug_print(k_print_warning, "Memory leak of size %d bytes with callstack:\n", (int)trace->size);
+		for (unsigned int i = 0; i < trace->frames; i++)
+		{
+			SymGetSymFromAddr64(process, (DWORD64)(trace->trace[i]), 0, symbol);
+			debug_print(k_print_warning, "[%i] %s\n", trace->frames - i - 1, symbol->Name);
+		}
+		
+		trace = trace->next;
+	}
+
+	free(symbol);
+	SymCleanup(process);
 
 	arena_t* arena = heap->arena;
 	while (arena)
@@ -123,11 +148,6 @@ void heap_destroy(heap_t* heap)
 		VirtualFree(arena, 0, MEM_RELEASE);
 		arena = next;
 	}
-	backtrace_t* trace = heap->backtrace;
-	while (trace)
-	{
-		debug_print(k_print_warning, "leaked");
-		trace = trace->next;
-	}
+	
 	VirtualFree(heap, 0, MEM_RELEASE);
 }
