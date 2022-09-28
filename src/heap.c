@@ -1,6 +1,7 @@
 #include "heap.h"
 
 #include "debug.h"
+#include "mutex.h"
 #include "tlsf/tlsf.h"
 
 #include <stddef.h>
@@ -34,6 +35,7 @@ typedef struct heap_t
 	size_t grow_increment;
 	arena_t* arena;
 	backtrace_t* backtrace; //a linked list to store backtraces
+	mutex_t* mutex;
 } heap_t;
 
 heap_t* heap_create(size_t grow_increment)
@@ -48,6 +50,7 @@ heap_t* heap_create(size_t grow_increment)
 		return NULL;
 	}
 
+	heap->mutex = mutex_create();
 	heap->grow_increment = grow_increment;
 	heap->tlsf = tlsf_create(heap + 1);
 	heap->arena = NULL;
@@ -58,8 +61,10 @@ heap_t* heap_create(size_t grow_increment)
 
 void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 {
+	mutex_lock(heap->mutex);
 	//alloc an additional sizeof(backtrace_t) bytes as overhead for the backtrace data
 	void* address = tlsf_memalign(heap->tlsf, alignment, size + sizeof(backtrace_t));
+
 	if (!address)
 	{
 		size_t arena_size =
@@ -95,11 +100,14 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 		heap->backtrace = backtrace;
 	}
 
+	mutex_unlock(heap->mutex);
+
 	return address;
 }
 
 void heap_free(heap_t* heap, void* address)
 {
+	mutex_lock(heap->mutex);
 	tlsf_free(heap->tlsf, address);
 
 	//find the backtrace that matches the address being freed and remove it from the linked list
@@ -116,6 +124,9 @@ void heap_free(heap_t* heap, void* address)
 		}
 		trace->next = trace->next->next;
 	}
+
+	mutex_unlock(heap->mutex);
+
 }
 
 void heap_destroy(heap_t* heap)
@@ -141,7 +152,7 @@ void heap_destroy(heap_t* heap)
 			SymGetSymFromAddr64(process, (DWORD64)(trace->trace[i]), 0, symbol);
 			debug_print(k_print_warning, "[%i] %s\n", trace->frames - i - 1, symbol->Name);
 		}
-		
+
 		trace = trace->next;
 	}
 
@@ -155,6 +166,8 @@ void heap_destroy(heap_t* heap)
 		VirtualFree(arena, 0, MEM_RELEASE);
 		arena = next;
 	}
-	
+
+	mutex_destroy(heap->mutex);
+
 	VirtualFree(heap, 0, MEM_RELEASE);
 }
