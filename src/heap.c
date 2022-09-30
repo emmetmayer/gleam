@@ -108,22 +108,34 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 void heap_free(heap_t* heap, void* address)
 {
 	mutex_lock(heap->mutex);
-	tlsf_free(heap->tlsf, address);
-
+	
+	int found = 0;
 	//find the backtrace that matches the address being freed and remove it from the linked list
 	backtrace_t* trace = heap->backtrace;
-	if (trace->address == address)
+	
+	if (trace && trace->address == address)
 	{
 		heap->backtrace = trace->next;
+		tlsf_free(heap->tlsf, address);
 	}
-	else
+	else if(trace)
 	{
-		while (trace->next->address != address)
+		while (trace->next)
 		{
-			trace = trace->next;
+			if (trace->next->address == address)
+			{
+				trace->next = trace->next->next;
+				tlsf_free(heap->tlsf, address);
+				break;
+			}
+			else
+			{
+				trace = trace->next;
+			}
 		}
-		trace->next = trace->next->next;
 	}
+
+	
 
 	mutex_unlock(heap->mutex);
 
