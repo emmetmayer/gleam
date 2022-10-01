@@ -134,9 +134,6 @@ void heap_free(heap_t* heap, void* address)
 			}
 		}
 	}
-
-	
-
 	mutex_unlock(heap->mutex);
 
 }

@@ -145,6 +145,10 @@ void fs_work_destroy(fs_work_t* work)
 	{
 		event_wait(work->done);
 		event_destroy(work->done);
+		if (work->op == k_fs_work_op_write && work->use_compression)
+		{
+			heap_free(work->heap, work->buffer);
+		}
 		heap_free(work->heap, work);
 	}
 }
@@ -284,7 +288,10 @@ static int compression_thread_func(void* user)
 			//replace buffer with dest
 			heap_free(fs->heap, work->buffer);
 			work->buffer = dest;
-			((char*)work->buffer)[work->size] = '\0';
+			if (work->null_terminate)
+			{
+				((char*)work->buffer)[work->size] = 0;
+			}
 			//signal that the work is complete
 			event_signal(work->done);
 			break;
