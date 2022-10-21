@@ -12,6 +12,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
+//event type holds the information needed to print into the json file
 typedef struct event_t
 {
 	char* name;
@@ -22,12 +23,14 @@ typedef struct event_t
 
 } event_t;
 
+//node for a linked list of event names
 typedef struct event_stack_t
 {
 	char* name;
 	struct event_stack_t* next;
 } event_stack_t;
 
+//node for a linked list of threads
 typedef struct thread_list_t
 {
 	int tid;
@@ -43,7 +46,6 @@ typedef struct trace_t
 	thread_list_t* thread_list;
 	event_t** event_t_array;
 	size_t event_count;
-	char* file_buffer;
 	size_t file_size;
 	char* file_path;
 	short tracing;
@@ -59,11 +61,9 @@ trace_t* trace_create(heap_t* heap, int event_capacity)
 
 	trace->thread_list = heap_alloc(heap, sizeof(thread_list_t), 8);
 	trace->thread_list->tid = GetCurrentThreadId();
-	//trace->thread_list->event_next = heap_alloc(heap, sizeof(event_stack_t), 8);
 
 	trace->event_t_array = heap_alloc(heap, sizeof(event_t*) * event_capacity, 8);
 	trace->event_count = 0;
-	trace->file_buffer;
 	trace->tracing = 0;
 	return trace;
 }
@@ -164,6 +164,7 @@ void trace_duration_pop(trace_t* trace)
 		thread_list_t* thread_list_temp = trace->thread_list;
 		event_t* temp = heap_alloc(trace->heap, sizeof(event_t), 8);
 		
+		//remove the event name from the stack of events
 		int thread_id = GetCurrentThreadId();
 		while (thread_list_temp)
 		{
@@ -202,44 +203,54 @@ void trace_capture_start(trace_t* trace, const char* path)
 void trace_capture_stop(trace_t* trace)
 {
 	mutex_lock(trace->mutex);
-	int size = snprintf(NULL, 0, "{\n\t \"displayTimeUnit\": \"ns\", \"traceEvents\" : [\n");
+	int size = 0;
+	size += snprintf(NULL, 0, "{\n\t\"displayTimeUnit\": \"ns\", \"traceEvents\" : [\n");
 	event_t* temp;
 	for (int i = 0; i < trace->event_count; i++)
 	{
 		temp = trace->event_t_array[i];
-		size += snprintf(NULL, 0, "{\t\t\"name\":\"%s\",\"ph\":\"B\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"},\n", temp->name, temp->pid, temp->tid, temp->ts);
+		if (i == trace->event_count - 1)
+		{
+			size += snprintf(NULL, 0, "{\t\t\"name\":\"%s\",\"ph\":\"B\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"}\n\t]\n", temp->name, temp->pid, temp->tid, temp->ts);
+		}
+		else
+		{
+			size += snprintf(NULL, 0, "{\t\t\"name\":\"%s\",\"ph\":\"B\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"},\n", temp->name, temp->pid, temp->tid, temp->ts);
+		}
 	}
-	size += snprintf(NULL, 0, "\t]\n}");
-	debug_print(k_print_info, "%d\n", size);
 	char* file_buffer = heap_alloc(trace->heap, sizeof(char) * size, 8);
-	debug_print(k_print_error, "%p\n", file_buffer);
-	
-	trace->file_size += snprintf(file_buffer, size, "{\n\t \"displayTimeUnit\": \"ns\", \"traceEvents\" : [\n");
-	debug_print(k_print_error, "%p\n", file_buffer);
+	int index = 0;
+	index += snprintf(file_buffer, size, "{\n\t\"displayTimeUnit\": \"ns\", \"traceEvents\" : [\n");
 	for (int i = 0; i < trace->event_count; i++)
 	{
 		temp = trace->event_t_array[i];
-		if (temp->event_type == 0)
+		if (i == trace->event_count - 1)
 		{
-			
-			trace->file_size += snprintf((file_buffer + trace->file_size), size, "\t\t{\"name\":\"%s\",\"ph\":\"B\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"},\n", temp->name, temp->pid, temp->tid, temp->ts);
-			debug_print(k_print_error, "%p\n", file_buffer);
+			if (temp->event_type == 0)
+			{
+				index += snprintf((file_buffer + index), size, "\t\t{\"name\":\"%s\",\"ph\":\"B\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"}\n\t]\n}", temp->name, temp->pid, temp->tid, temp->ts);
+			}
+			else
+			{
+				index += snprintf((file_buffer + index), size, "\t\t{\"name\":\"%s\",\"ph\":\"E\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"}\n\t]\n}", temp->name, temp->pid, temp->tid, temp->ts);
+			}
 		}
-		else 
+		else
 		{
-			trace->file_size += snprintf((file_buffer + trace->file_size), size, "\t\t{\"name\":\"%s\",\"ph\":\"E\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"},\n", temp->name, temp->pid, temp->tid, temp->ts);
-			debug_print(k_print_error, "%p\n", file_buffer);
+			if (temp->event_type == 0)
+			{
+				index += snprintf((file_buffer + index), size, "\t\t{\"name\":\"%s\",\"ph\":\"B\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"},\n", temp->name, temp->pid, temp->tid, temp->ts);
+			}
+			else
+			{
+				index += snprintf((file_buffer + index), size, "\t\t{\"name\":\"%s\",\"ph\":\"E\",\"pid\":%d,\"tid\":\"%d\",\"ts\":\"%d\"},\n", temp->name, temp->pid, temp->tid, temp->ts);
+			}
 		}
 	}
-	trace->file_size += snprintf( (file_buffer + trace->file_size), size, "\t]\n}");
-	debug_print(k_print_info,"pre: %p\n", file_buffer);
-	fs_work_t* w = fs_write(trace->fs, trace->file_path, file_buffer, trace->file_size, false);
-	debug_print(k_print_info, "post: %p\n", file_buffer);
+	fs_work_t* w = fs_write(trace->fs, trace->file_path, file_buffer, index, false);
 	heap_free(trace->heap, file_buffer);
 	fs_work_wait(w);
 	fs_work_destroy(w);
-	
-	debug_print(k_print_info, "wrote\n");
 	trace->tracing = 0;
 	mutex_unlock(trace->mutex);
 }

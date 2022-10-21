@@ -50,12 +50,3 @@ void* queue_pop(queue_t* queue)
 	semaphore_release(queue->free_items);
 	return item;
 }
-
-void* queue_dequeue(queue_t* queue)
-{
-	semaphore_acquire(queue->used_items);
-	int index = (atomic_decrement(&queue->tail_index) - 1) % queue->capacity;
-	void* item = queue->items[index];
-	semaphore_release(queue->free_items);
-	return item;
-}

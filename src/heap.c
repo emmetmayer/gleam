@@ -101,7 +101,6 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 	}
 
 	mutex_unlock(heap->mutex);
-
 	return address;
 }
 
@@ -111,11 +110,12 @@ void heap_free(heap_t* heap, void* address)
 
 	//find the backtrace that matches the address being freed and remove it from the linked list
 	backtrace_t* trace = heap->backtrace;
-	
+	int freed = 0;
 	if (trace && trace->address == address)
 	{
 		heap->backtrace = trace->next;
 		tlsf_free(heap->tlsf, address);
+		freed = 1;
 	}
 	else if(trace)
 	{
@@ -125,6 +125,7 @@ void heap_free(heap_t* heap, void* address)
 			{
 				trace->next = trace->next->next;
 				tlsf_free(heap->tlsf, address);
+				freed = 1;
 				break;
 			}
 			else
@@ -133,6 +134,36 @@ void heap_free(heap_t* heap, void* address)
 			}
 		}
 	}
+	/*
+	if (freed == 0)
+	{
+		HANDLE process = GetCurrentProcess();
+		PIMAGEHLP_SYMBOL64 symbol;
+
+		SymInitialize(process, NULL, TRUE);
+
+		symbol = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
+		symbol->MaxNameLength = 255;
+		symbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL64);
+
+		//parse through each backtrace_t struct and print its leak information
+		backtrace_t* trace = heap->backtrace;
+		while (trace)
+		{
+			debug_print(k_print_warning, "Double free of size %d bytes of data and %d bytes of overhead at address %p with callstack attempted:\n", (int)trace->size, (int)sizeof(backtrace_t), trace->address);
+			for (unsigned int i = 0; i < trace->frames; i++)
+			{
+				SymGetSymFromAddr64(process, (DWORD64)(trace->trace[i]), 0, symbol);
+				debug_print(k_print_warning, "[%i] %s\n", trace->frames - i - 1, symbol->Name);
+			}
+
+			trace = trace->next;
+		}
+
+		free(symbol);
+		SymCleanup(process);
+	}
+	*/
 	mutex_unlock(heap->mutex);
 }
 

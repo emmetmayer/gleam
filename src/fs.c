@@ -89,7 +89,6 @@ fs_work_t* fs_write(fs_t* fs, const char* path, const void* buffer, size_t size,
 	work->op = k_fs_work_op_write;
 	strcpy_s(work->path, sizeof(work->path), path);
 	work->buffer = (void*)buffer;
-	debug_print(k_print_info, "%p --- %p\n", work->buffer, buffer);
 	work->size = size;
 	work->done = event_create();
 	work->result = 0;
@@ -147,10 +146,6 @@ void fs_work_destroy(fs_work_t* work)
 	{
 		event_wait(work->done);
 		event_destroy(work->done);
-		if (work->op == k_fs_work_op_write && work->use_compression)
-		{
-			heap_free(work->heap, work->buffer);
-		}
 		heap_free(work->heap, work);
 	}
 }
@@ -245,7 +240,6 @@ static void file_write(fs_work_t* work)
 		event_signal(work->done);
 		return;
 	}
-	debug_print(k_print_info, "%p---\n", work->buffer);
 	work->size = bytes_written;
 
 	CloseHandle(handle);
