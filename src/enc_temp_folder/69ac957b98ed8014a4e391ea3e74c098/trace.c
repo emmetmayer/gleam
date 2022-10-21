@@ -121,11 +121,9 @@ void trace_duration_push(trace_t* trace, const char* name)
 				int size = snprintf(NULL, 0, temp->name) + 1;
 				char* name = heap_alloc(trace->heap, sizeof(char) * size, 8);
 				snprintf(name, size, temp->name);
-
 				new_event->name = name; 
 				new_event->next = thread_list_temp->event_next;
 				thread_list_temp->event_next = new_event;
-
 				added = true;
 				break;
 			}
@@ -183,7 +181,6 @@ void trace_duration_pop(trace_t* trace)
 		temp->pid = GetCurrentProcessId();
 		temp->tid = GetCurrentThreadId();
 		temp->ts = (int)timer_ticks_to_us(timer_get_ticks());
-
 		trace->event_t_array[trace->event_count] = temp;
 		trace->event_count += 1;
 		mutex_unlock(trace->mutex);

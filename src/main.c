@@ -15,6 +15,7 @@
 #include <windows.h>
 
 static void homework3_test();
+static void homework3_emmet();
 
 int main(int argc, const char* argv[])
 {
@@ -40,12 +41,13 @@ int main(int argc, const char* argv[])
 		uint32_t mask = wm_get_mouse_mask(window);
 
 		uint32_t now = timer_ticks_to_ms(timer_get_ticks());
-		debug_print(
+		/*debug_print(
 			k_print_info,
 			"T=%dms, MOUSE mask=%x move=%dx%d\n",
 			timer_object_get_ms(root_time),
 			mask,
 			x, y);
+			*/
 	}
 
 	timer_object_destroy(root_time);
@@ -67,6 +69,13 @@ static void homework3_slow_function(trace_t* trace)
 	trace_duration_push(trace, "homework3_slow_function");
 	thread_sleep(100);
 	homework3_slower_function(trace);
+	trace_duration_pop(trace);
+}
+
+static void homework3_emmet_function(trace_t* trace)
+{
+	trace_duration_push(trace, "homework3_emmet_function");
+	//thread_sleep(100);
 	trace_duration_pop(trace);
 }
 
@@ -109,6 +118,31 @@ static void homework3_test()
 
 	// Wait for thread to finish.
 	thread_destroy(thread);
+
+	// Finish capturing. Write the trace.json file in Chrome tracing format.
+	trace_capture_stop(trace);
+
+	trace_destroy(trace);
+
+	heap_destroy(heap);
+}
+
+static void homework3_emmet()
+{
+	heap_t* heap = heap_create(4096);
+
+	// Create the tracing system with at least space for 100 *captured* events.
+	// Each call to trace_duration_push is an event.
+	// Each call to trace_duration_pop is an event.
+	// Before trace_capture_start is called, and after trace_capture_stop is called,
+	// duration events should not be generated.
+	trace_t* trace = trace_create(heap, 100);
+
+	// ignore any additional events.
+	trace_capture_start(trace, "trace.json");
+
+	// Call a function that will push/pop duration events.
+	homework3_emmet_function(trace);
 
 	// Finish capturing. Write the trace.json file in Chrome tracing format.
 	trace_capture_stop(trace);

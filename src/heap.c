@@ -108,8 +108,7 @@ void* heap_alloc(heap_t* heap, size_t size, size_t alignment)
 void heap_free(heap_t* heap, void* address)
 {
 	mutex_lock(heap->mutex);
-	
-	int found = 0;
+
 	//find the backtrace that matches the address being freed and remove it from the linked list
 	backtrace_t* trace = heap->backtrace;
 	
@@ -135,7 +134,6 @@ void heap_free(heap_t* heap, void* address)
 		}
 	}
 	mutex_unlock(heap->mutex);
-
 }
 
 void heap_destroy(heap_t* heap)
@@ -155,7 +153,7 @@ void heap_destroy(heap_t* heap)
 	backtrace_t* trace = heap->backtrace;
 	while (trace)
 	{
-		debug_print(k_print_warning, "Memory leak of size %d bytes of data and %d bytes of overhead with callstack:\n", (int)trace->size, (int)sizeof(backtrace_t));
+		debug_print(k_print_warning, "Memory leak of size %d bytes of data and %d bytes of overhead at address %p with callstack:\n", (int)trace->size, (int)sizeof(backtrace_t), trace->address);
 		for (unsigned int i = 0; i < trace->frames; i++)
 		{
 			SymGetSymFromAddr64(process, (DWORD64)(trace->trace[i]), 0, symbol);

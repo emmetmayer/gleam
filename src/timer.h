@@ -13,6 +13,9 @@ uint64_t timer_get_ticks();
 // Get the OS-defined tick frequency.
 uint64_t timer_get_ticks_per_second();
 
+// Convert a number of OS-defined ticks to nanoseconds.
+uint64_t timer_ticks_to_ns(uint64_t t);
+
 // Convert a number of OS-defined ticks to microseconds.
 uint64_t timer_ticks_to_us(uint64_t t);
 
