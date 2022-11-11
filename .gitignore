@@ -64,3 +64,9 @@ dkms.conf
 *.db-shm
 *.db-wal
 *.opendb
+
+src/x64/*
+src/x86/*
+*.vcxproj.filters
+*.vcxproj.user
+src/.vs/*
