@@ -53,6 +53,16 @@ __forceinline vec3f_t vec3f_up()
 	return (vec3f_t) { .z = 1.0f };
 }
 
+__forceinline vec3f_t vec3f_new(float x, float y, float z)
+{
+	return (vec3f_t)
+	{
+			.x = x,
+			.y = y,
+			.z = z,
+	};
+}
+
 __forceinline vec3f_t vec3f_negate(vec3f_t v)
 {
 	return (vec3f_t)
