@@ -11,6 +11,8 @@
 #include <windows.h>
 #include <windowsx.h>
 
+#include "physics.h"
+
 typedef struct wm_window_t
 {
 	HWND hwnd;
@@ -21,6 +23,7 @@ typedef struct wm_window_t
 	uint32_t key_mask;
 	int mouse_x;
 	int mouse_y;
+	b2World physWorld;
 } wm_window_t;
 
 const struct

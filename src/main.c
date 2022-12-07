@@ -14,8 +14,8 @@ int main(int argc, const char* argv[])
 	debug_install_exception_handler();
 
 	timer_startup();
-
-	cpp_test_function(42);
+	debug_print(k_print_info, "%d\n", cpp_test_function(42));
+	
 
 	heap_t* heap = heap_create(2 * 1024 * 1024);
 	fs_t* fs = fs_create(heap, 8);
