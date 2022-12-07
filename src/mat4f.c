@@ -233,19 +233,19 @@ void mat4f_make_orthographic(mat4f_t* m, float size, float aspect, float z_near,
 	float t = size;
 	float l = -r, b = -t;
 
-	m->data[0][0] = 2.0f / (r - l); 
+	m->data[0][0] = 1.0f / (r - l); 
 	m->data[0][1] = 0.0f;
 	m->data[0][2] = 0.0f;
 	m->data[0][3] = 0.0f;
 
 	m->data[1][0] = 0.0f;
-	m->data[1][1] = 2.0f / (t - b);
+	m->data[1][1] = 1.0f / (t - b);
 	m->data[1][2] = 0.0f;
 	m->data[1][3] = 0.0f;
 
 	m->data[2][0] = 0.0f;
 	m->data[2][1] = 0.0f;
-	m->data[2][2] = -2.0f / (z_far - z_near);
+	m->data[2][2] = -1.0f / (z_far - z_near);
 	m->data[2][3] = 0.0f;
 
 	m->data[3][0] = 0.0f;
