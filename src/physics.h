@@ -9,7 +9,7 @@ void physicsSpaceSetGravity(cpSpace* space, cpVect gravity);
 cpBody* physicsSpaceGetStaticBody(cpSpace* space);
 
 ///Rigidbody Functions
-cpBody* physicsRigidBodyCreate(cpSpace* space, cpBodyType type, cpFloat mass, cpFloat moment, cpVect pos);
+cpBody* physicsRigidBodyCreate(cpSpace* space, cpBodyType type, cpFloat mass, cpFloat moment, cpVect pos, cpFloat angle);
 
 void physicsRigidBodyDestroy(cpBody* body);
 

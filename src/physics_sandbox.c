@@ -11,6 +11,7 @@
 #include "transform.h"
 #include "wm.h"
 #include "physics.h"
+#include "quatf.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -85,8 +86,8 @@ typedef struct physics_sandbox_t
 static void load_resources(physics_sandbox_t* game);
 static void unload_resources(physics_sandbox_t* game);
 static void spawn_player(physics_sandbox_t* game, int index);
-static void spawn_cube(physics_sandbox_t* game, int index, vec3f_t size, vec3f_t pos, float friction, cpBodyType type);
-static void spawn_circle(physics_sandbox_t* game, int index, float size, vec3f_t pos, float friction, cpBodyType type);
+static void spawn_cube(physics_sandbox_t* game, int index, vec3f_t size, vec3f_t pos, float angle, float friction, cpBodyType type);
+static void spawn_circle(physics_sandbox_t* game, int index, float size, vec3f_t pos, float angle, float friction, cpBodyType type);
 static void spawn_camera(physics_sandbox_t* game);
 static void update_players(physics_sandbox_t* game);
 static void update_physics(physics_sandbox_t* game);
@@ -129,9 +130,12 @@ physics_sandbox_t* physics_sandbox_create(heap_t* heap, fs_t* fs, wm_window_t* w
 
 	load_resources(game);
 	spawn_player(game, 0);
-	spawn_cube(game, 0, vec3f_new(2.0f, 2.0f, 0.0f), vec3f_new(5.0f, 5.0f, 0.0f), 1.0f, CP_BODY_TYPE_DYNAMIC);
-	spawn_circle(game, 1, 2.0f, vec3f_new(4.0f, 8.0f, 0.0f), 1.0f, CP_BODY_TYPE_DYNAMIC);
-	spawn_cube(game, 2, vec3f_new(80.0f, 1.0f, 0.0f), vec3f_new(0.0f, -40.0f, 0.0f), 1.0f, CP_BODY_TYPE_STATIC);
+	spawn_cube(game, 0, vec3f_new(2.0f, 2.0f, 0.0f), vec3f_new(5.0f, 5.0f, 0.0f), 0.0f, 1.0f, CP_BODY_TYPE_DYNAMIC);
+	spawn_circle(game, 1, 2.0f, vec3f_new(20.0f, 9.0f, 0.0f), 0.0f, 1.0f, CP_BODY_TYPE_DYNAMIC);
+	spawn_circle(game, 5, 20.0f, vec3f_new(50.0f, 9.0f, 0.0f), 0.0f, 1.0f, CP_BODY_TYPE_DYNAMIC);
+	spawn_cube(game, 2, vec3f_new(80.0f, 1.0f, 0.0f), vec3f_new(0.0f, -40.0f, 0.0f), 0.0f , 1.0f, CP_BODY_TYPE_STATIC);
+	spawn_cube(game, 3, vec3f_new(10.0f, 1.0f, 0.0f), vec3f_new(20.0f, -10.0f, 0.0f), 20.0f, 1.0f, CP_BODY_TYPE_STATIC);
+	spawn_cube(game, 4, vec3f_new(10.0f, 1.0f, 0.0f), vec3f_new(0.0f, -20.0f, 0.0f), -20.0f, 1.0f, CP_BODY_TYPE_STATIC);
 	
 	spawn_camera(game);
 
@@ -259,7 +263,7 @@ static void spawn_player(physics_sandbox_t* game, int index)
 
 	player_component_t* player_comp = ecs_entity_get_component(game->ecs, game->player_ent, game->player_type, true);
 	player_comp->index = index;
-	player_comp->body = physicsRigidBodyCreate(game->physics_space, CP_BODY_TYPE_KINEMATIC, 1.0f, 1.0f, cpv(0.0f, 0.0f));
+	player_comp->body = physicsRigidBodyCreate(game->physics_space, CP_BODY_TYPE_KINEMATIC, 1.0f, 1.0f, cpv(0.0f, 0.0f), 0.0f);
 	player_comp->shape = physicsBoxCreate(game->physics_space, player_comp->body, 2.0f, 2.0f, 0.0f, 1.0f);
 
 	model_component_t* model_comp = ecs_entity_get_component(game->ecs, game->player_ent, game->model_type, true);
@@ -277,7 +281,7 @@ static void spawn_player(physics_sandbox_t* game, int index)
 	net_state_register_entity_instance(game->net, 0, game->player_ent);
 }
 
-static void spawn_cube(physics_sandbox_t* game, int index, vec3f_t size, vec3f_t pos, float friction, cpBodyType type)
+static void spawn_cube(physics_sandbox_t* game, int index, vec3f_t size, vec3f_t pos, float angle, float friction, cpBodyType type)
 {
 	uint64_t k_cube_ent_mask =
 		(1ULL << game->transform_type) |
@@ -295,7 +299,7 @@ static void spawn_cube(physics_sandbox_t* game, int index, vec3f_t size, vec3f_t
 	strcpy_s(name_comp->name, sizeof(name_comp->name), "cube");
 
 	physics_component_t* physics_comp = ecs_entity_get_component(game->ecs, game->physics_ent, game->physics_type, true);
-	physics_comp->body = physicsRigidBodyCreate(game->physics_space, type, 1.0f, 1.0f, cpv(pos.x, pos.y));
+	physics_comp->body = physicsRigidBodyCreate(game->physics_space, type, size.x*size.y, 1.0f, cpv(pos.x, pos.y), angle);
 	physics_comp->shape = physicsBoxCreate(game->physics_space, physics_comp->body, 2*size.x, 2*size.y, 0.0f, friction);
 
 	model_component_t* model_comp = ecs_entity_get_component(game->ecs, game->physics_ent, game->model_type, true);
@@ -313,7 +317,7 @@ static void spawn_cube(physics_sandbox_t* game, int index, vec3f_t size, vec3f_t
 	net_state_register_entity_instance(game->net, 0, game->physics_ent);
 }
 
-static void spawn_circle(physics_sandbox_t* game, int index, float size, vec3f_t pos, float friction, cpBodyType type)
+static void spawn_circle(physics_sandbox_t* game, int index, float size, vec3f_t pos, float angle, float friction, cpBodyType type)
 {
 	uint64_t k_circle_ent_mask =
 		(1ULL << game->transform_type) |
@@ -332,7 +336,7 @@ static void spawn_circle(physics_sandbox_t* game, int index, float size, vec3f_t
 	strcpy_s(name_comp->name, sizeof(name_comp->name), "circle");
 
 	physics_component_t* physics_comp = ecs_entity_get_component(game->ecs, game->physics_ent, game->physics_type, true);
-	physics_comp->body = physicsRigidBodyCreate(game->physics_space, type, 1.0f, 1.0f, cpv(pos.x, pos.y));
+	physics_comp->body = physicsRigidBodyCreate(game->physics_space, type, pow((M_PI * size), 2.0f), 1.0f, cpv(pos.x, pos.y), angle);
 	physics_comp->shape = physicsCircleCreate(game->physics_space, physics_comp->body, size, friction);
 
 	model_component_t* model_comp = ecs_entity_get_component(game->ecs, game->physics_ent, game->model_type, true);
@@ -405,7 +409,7 @@ static void update_players(physics_sandbox_t* game)
 		{
 			vel_x -= 1.0f;
 		}
-		physicsRigidBodySetVelocity(player_comp->body, cpvmult(cpv(vel_x, vel_y), 5.0f));
+		physicsRigidBodySetVelocity(player_comp->body, cpvmult(cpv(vel_x, vel_y), 10.0f));
 	}
 }
 
@@ -424,6 +428,7 @@ static void update_physics(physics_sandbox_t* game)
 
 		transform_comp->transform.translation.x = (float)physics_comp->body->p.x;
 		transform_comp->transform.translation.y = (float)-physics_comp->body->p.y;
+		transform_comp->transform.rotation = quatf_from_eulers(vec3f_new(0.0f, 0.0f, -(float)physics_comp->body->a));
 	}
 }
 

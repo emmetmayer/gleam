@@ -214,7 +214,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="atomic.h" />
-    <ClInclude Include="chipmunkSrc\prime.h" />
     <ClInclude Include="chipmunk\chipmunk.h" />
     <ClInclude Include="chipmunk\chipmunk_ffi.h" />
     <ClInclude Include="chipmunk\chipmunk_private.h" />
