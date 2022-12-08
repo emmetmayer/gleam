@@ -40,17 +40,17 @@ __forceinline vec3f_t vec3f_zero()
 
 __forceinline vec3f_t vec3f_forward()
 {
-	return (vec3f_t) { .x = -1.0f };
+	return (vec3f_t) { .z = 1.0f };
 }
 
 __forceinline vec3f_t vec3f_right()
 {
-	return (vec3f_t) { .y = 1.0f };
+	return (vec3f_t) { .x = 1.0f };
 }
 
 __forceinline vec3f_t vec3f_up()
 {
-	return (vec3f_t) { .z = 1.0f };
+	return (vec3f_t) { .y = 1.0f };
 }
 
 __forceinline vec3f_t vec3f_new(float x, float y, float z)

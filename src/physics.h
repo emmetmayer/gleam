@@ -1,18 +1,23 @@
-#pragma once
+#include "chipmunk/chipmunk_private.h"
+///Space Functions
+cpSpace* physicsSpaceCreate();
 
-#ifndef BOX2D_H
-#define BOX2D_H
+void physicsSpaceDestroy(cpSpace* space);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+void physicsSpaceSetGravity(cpSpace* space, cpVect gravity);
 
-#include "box2d/b2_world.h"
+cpBody* physicsSpaceGetStaticBody(cpSpace* space);
 
-world_t
+///Rigidbody Functions
+cpBody* physicsRigidBodyCreate(cpSpace* space, cpBodyType type, cpFloat mass, cpFloat moment, cpVect pos);
 
-#endif
+void physicsRigidBodyDestroy(cpBody* body);
 
-#ifdef __cplusplus
-}
-#endif
+void physicsRigidBodySetVelocity(cpBody* body, cpVect velocity);
+
+///Shape Functions
+cpShape* physicsCircleCreate(cpSpace* space, cpBody* body, cpFloat radius, cpFloat friction);
+
+cpShape* physicsBoxCreate(cpSpace* space, cpBody* body, cpFloat width, cpFloat height, cpFloat radius, cpFloat friction);
+
+void physicsShapeDestroy(cpShape* shape);

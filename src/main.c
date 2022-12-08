@@ -2,9 +2,10 @@
 #include "fs.h"
 #include "heap.h"
 #include "render.h"
-#include "frogger_game.h"
+#include "physics_sandbox.h"
 #include "timer.h"
 #include "wm.h"
+#include "physics.h"
 
 #include "cpp_test.h"
 
@@ -22,17 +23,17 @@ int main(int argc, const char* argv[])
 	wm_window_t* window = wm_create(heap);
 	render_t* render = render_create(heap, window);
 
-	frogger_game_t* game = frogger_game_create(heap, fs, window, render, argc, argv);
+	physics_sandbox_t* game = physics_sandbox_create(heap, fs, window, render, argc, argv);
 
 	while (!wm_pump(window))
 	{
-		frogger_game_update(game);
+		physics_sandbox_update(game);
 	}
 
 	/* XXX: Shutdown render before the game. Render uses game resources. */
 	render_destroy(render);
 
-	frogger_game_destroy(game);
+	physics_sandbox_destroy(game);
 
 	wm_destroy(window);
 	fs_destroy(fs);
